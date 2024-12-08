@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Tasks</h5>
+                    <h2 class="card-text">{{ total_tasks }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Pending Tasks</h5>
+                    <h2 class="card-text">{{ pending_tasks }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">In Progress</h5>
+                    <h2 class="card-text">{{ in_progress_tasks }}</h2>
+                </div>
+            </div>
+        </div>
+        {% if user.user_type.name in 'admin,manager,supervisor,electrician'|split:',' %}
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Completed Tasks</h5>
+                    <h2 class="card-text">{{ completed_tasks }}</h2>
+                    {% if completed_tasks > 0 %}
+                    <a href="{% url 'download_completed_tasks' %}" class="btn btn-light btn-sm mt-2">
+                        <i class="fas fa-download"></i> Download Report
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Recent Tasks -->
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Recent Tasks</h5>
+                    <div class="list-group">
+                        {% for task in recent_tasks %}
+                            <a href="{% url 'task_detail' task.id %}" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">SR No: {{ task.sr_no }}</h6>
+                                    <small class="text-muted">{{ task.created_at|timesince }} ago</small>
+                                </div>
+                                <p class="mb-1">{{ task.job_description|truncatechars:100 }}</p>
+                                <small class="text-muted">
+                                    Location: {{ task.location }}<br>
+                                    Status: <span class="badge {% if task.status == 'PENDING' %}bg-warning
+                                           {% elif task.status == 'IN_PROGRESS' %}bg-info
+                                           {% else %}bg-success{% endif %}">
+                                        {{ task.status }}
+                                    </span>
+                                </small>
+                            </a>
+                        {% empty %}
+                            <p class="text-muted">No recent tasks</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            {% if request.user.user_type.can_assign_task %}
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Quick Actions</h5>
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'task_create' %}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Create New Task
+                        </a>
+                        <a href="{% url 'user_management' %}" class="btn btn-secondary">
+                            <i class="fas fa-users"></i> Manage Users
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

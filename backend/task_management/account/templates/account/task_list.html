@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block title %}Tasks - Task Management{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="mb-4">Tasks</h2>
+    
+    <div class="row mb-3">
+        <div class="col">
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-outline-primary active" data-filter="all">All</button>
+                <button type="button" class="btn btn-outline-primary" data-filter="PENDING">Pending</button>
+                <button type="button" class="btn btn-outline-primary" data-filter="IN_PROGRESS">In Progress</button>
+                <button type="button" class="btn btn-outline-primary" data-filter="COMPLETED">Completed</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+      
+        {% for task in tasks %}
+        <div class="col-md-6 col-lg-4 task-card" data-status="{{ task.status }}">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">{{ task.title }}</h5>
+                    <h6 class="card-subtitle mb-2 text-muted">
+                        Priority: <span class="badge bg-{{ task.priority|lower }}">{{ task.priority }}</span>
+                    </h6>
+                    <p class="card-text">{{ task.description|truncatewords:30 }}</p>
+                    <div class="mb-2">
+                        <small class="text-muted">
+                            Assigned to: {{ task.assigned_to.get_full_name }}
+                        </small>
+                    </div>
+                    <div class="mb-2">
+                        <small class="text-muted">
+                            Deadline: {{ task.deadline|date:"M d, Y" }}
+                        </small>
+                    </div>
+                    <a href="{% url 'task_detail' task.id %}" class="btn btn-primary btn-sm">View Details</a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col">
+            <p>No tasks found.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('[data-filter]').forEach(button => {
+    button.addEventListener('click', function() {
+        const filter = this.dataset.filter;
+        
+        // Update active button
+        document.querySelectorAll('[data-filter]').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        this.classList.add('active');
+        
+        // Filter tasks
+        document.querySelectorAll('.task-card').forEach(card => {
+            if (filter === 'all' || card.dataset.status === filter) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
+{% endblock %}

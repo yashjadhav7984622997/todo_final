@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+
+{% block title %}Analytics Dashboard{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Total Tasks</h6>
+                    <h2 class="card-text">{{ total_tasks }}</h2>
+                    <p class="mb-0">
+                        <small>{{ tasks_this_month }} this month</small>
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Completion Rate</h6>
+                    <h2 class="card-text">{{ completion_rate }}%</h2>
+                    <p class="mb-0">
+                        <small>Last 30 days</small>
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Average Completion Time</h6>
+                    <h2 class="card-text">{{ avg_completion_days }} days</h2>
+                    <p class="mb-0">
+                        <small>From assignment to completion</small>
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h6 class="card-title">Active Users</h6>
+                    <h2 class="card-text">{{ active_users }}</h2>
+                    <p class="mb-0">
+                        <small>Users with tasks this month</small>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Task Status Distribution</h5>
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Tasks by Priority</h5>
+                    <canvas id="priorityChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Task Completion Trend</h5>
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Top Performers</h5>
+                    <div class="list-group">
+                        {% for user in top_performers %}
+                            <div class="list-group-item">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">{{ user.get_full_name }}</h6>
+                                    <span class="badge bg-success">{{ user.completed_tasks }} tasks</span>
+                                </div>
+                                <small class="text-muted">
+                                    Completion rate: {{ user.completion_rate }}%
+                                </small>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Recent Task Completions</h5>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Task</th>
+                                    <th>Assigned To</th>
+                                    <th>Completed</th>
+                                    <th>Duration</th>
+                                    <th>Priority</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for task in recent_completions %}
+                                    <tr>
+                                        <td>
+                                            <a href="{% url 'task_detail' task.id %}">
+                                                {{ task.title }}
+                                            </a>
+                                        </td>
+                                        <td>{{ task.assigned_to.get_full_name }}</td>
+                                        <td>{{ task.completed_at|date:"M d, Y" }}</td>
+                                        <td>{{ task.duration_days }} days</td>
+                                        <td>
+                                            <span class="badge bg-{{ task.priority|lower }}">
+                                                {{ task.priority }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Status Distribution Chart
+const statusCtx = document.getElementById('statusChart').getContext('2d');
+new Chart(statusCtx, {
+    type: 'doughnut',
+    data: {
+        labels: {{ status_labels|safe }},
+        datasets: [{
+            data: {{ status_data }},
+            backgroundColor: ['#ffc107', '#17a2b8', '#28a745'],
+        }]
+    }
+});
+
+// Priority Distribution Chart
+const priorityCtx = document.getElementById('priorityChart').getContext('2d');
+new Chart(priorityCtx, {
+    type: 'bar',
+    data: {
+        labels: {{ priority_labels|safe }},
+        datasets: [{
+            label: 'Tasks by Priority',
+            data: {{ priority_data }},
+            backgroundColor: ['#28a745', '#ffc107', '#dc3545'],
+        }]
+    },
+    options: {
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+// Trend Chart
+const trendCtx = document.getElementById('trendChart').getContext('2d');
+new Chart(trendCtx, {
+    type: 'line',
+    data: {
+        labels: {{ trend_labels|safe }},
+        datasets: [{
+            label: 'Completed Tasks',
+            data: {{ trend_data }},
+            borderColor: '#28a745',
+            tension: 0.1
+        }]
+    },
+    options: {
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

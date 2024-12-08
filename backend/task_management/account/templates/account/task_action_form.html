@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Action - {{ task.title }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <h3 class="card-title mb-4">Add Action to Task</h3>
+                    <h5 class="text-muted mb-4">{{ task.title }}</h5>
+                    
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="action_description" class="form-label">Action Description</label>
+                            <textarea class="form-control" id="action_description" 
+                                    name="action_description" rows="4" required></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="materials_required" class="form-label">Materials Required (Optional)</label>
+                            <textarea class="form-control" id="materials_required" 
+                                    name="materials_required" rows="3"></textarea>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Add Action</button>
+                            <a href="{% url 'task_detail' task.id %}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

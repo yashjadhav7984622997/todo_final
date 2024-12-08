@@ -1,0 +1,192 @@
+{% extends 'base.html' %}
+
+{% block title %}Task Calendar{% endblock %}
+
+{% block extra_css %}
+<link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.css' rel='stylesheet' />
+<style>
+    .fc-event {
+        cursor: pointer;
+    }
+    .priority-high { border-left: 3px solid #dc3545; }
+    .priority-medium { border-left: 3px solid #ffc107; }
+    .priority-low { border-left: 3px solid #28a745; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-body">
+                    <div id="calendar"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h5 class="card-title">Filters</h5>
+                    <div class="mb-3">
+                        <label class="form-label">Status</label>
+                        <div class="form-check">
+                            <input class="form-check-input filter-status" type="checkbox" 
+                                   value="PENDING" id="statusPending" checked>
+                            <label class="form-check-label" for="statusPending">
+                                Pending
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input filter-status" type="checkbox" 
+                                   value="IN_PROGRESS" id="statusProgress" checked>
+                            <label class="form-check-label" for="statusProgress">
+                                In Progress
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input filter-status" type="checkbox" 
+                                   value="COMPLETED" id="statusCompleted" checked>
+                            <label class="form-check-label" for="statusCompleted">
+                                Completed
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Priority</label>
+                        <div class="form-check">
+                            <input class="form-check-input filter-priority" type="checkbox" 
+                                   value="high" id="priorityHigh" checked>
+                            <label class="form-check-label" for="priorityHigh">
+                                High
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input filter-priority" type="checkbox" 
+                                   value="medium" id="priorityMedium" checked>
+                            <label class="form-check-label" for="priorityMedium">
+                                Medium
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input filter-priority" type="checkbox" 
+                                   value="low" id="priorityLow" checked>
+                            <label class="form-check-label" for="priorityLow">
+                                Low
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Upcoming Deadlines</h5>
+                    <div class="list-group">
+                        {% for task in upcoming_tasks %}
+                            <a href="{% url 'task_detail' task.id %}" 
+                               class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">{{ task.title }}</h6>
+                                    <small class="text-muted">
+                                        {{ task.deadline|date:"M d, Y" }}
+                                    </small>
+                                </div>
+                                <small class="text-muted">
+                                    Priority: {{ task.priority|title }}
+                                </small>
+                            </a>
+                        {% empty %}
+                            <p class="text-muted">No upcoming deadlines</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Task Detail Modal -->
+<div class="modal fade" id="taskModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Task Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Content will be loaded dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a href="#" class="btn btn-primary" id="viewTaskBtn">View Full Details</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.js'></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var calendarEl = document.getElementById('calendar');
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+        },
+        events: '/api/tasks/calendar/',
+        eventClick: function(info) {
+            showTaskDetails(info.event.id);
+        },
+        eventClassNames: function(arg) {
+            return ['priority-' + arg.event.extendedProps.priority];
+        }
+    });
+    calendar.render();
+
+    // Filter events
+    function filterEvents() {
+        let statusFilters = Array.from(document.querySelectorAll('.filter-status:checked'))
+            .map(cb => cb.value);
+        let priorityFilters = Array.from(document.querySelectorAll('.filter-priority:checked'))
+            .map(cb => cb.value);
+
+        calendar.getEvents().forEach(event => {
+            if (statusFilters.includes(event.extendedProps.status) && 
+                priorityFilters.includes(event.extendedProps.priority)) {
+                event.setProp('display', 'auto');
+            } else {
+                event.setProp('display', 'none');
+            }
+        });
+    }
+
+    document.querySelectorAll('.filter-status, .filter-priority')
+        .forEach(cb => cb.addEventListener('change', filterEvents));
+});
+
+function showTaskDetails(taskId) {
+    fetch(`/api/tasks/${taskId}/`)
+        .then(response => response.json())
+        .then(data => {
+            const modalBody = document.querySelector('#taskModal .modal-body');
+            modalBody.innerHTML = `
+                <h6>${data.title}</h6>
+                <p>${data.description}</p>
+                <div class="mb-2">
+                    <strong>Status:</strong> ${data.status}<br>
+                    <strong>Priority:</strong> ${data.priority}<br>
+                    <strong>Deadline:</strong> ${new Date(data.deadline).toLocaleDateString()}<br>
+                    <strong>Assigned to:</strong> ${data.assigned_to.name}
+                </div>
+            `;
+            document.getElementById('viewTaskBtn').href = `/tasks/${taskId}/`;
+            new bootstrap.Modal(document.getElementById('taskModal')).show();
+        });
+}
+</script>
+{% endblock %}

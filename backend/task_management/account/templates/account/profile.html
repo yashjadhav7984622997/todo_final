@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title %}Profile - {{ user.get_full_name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body text-center">
+                    {% if user.profile_picture %}
+                        <img src="{{ user.profile_picture.url }}" alt="Profile Picture" 
+                             class="rounded-circle mb-3" style="width: 150px; height: 150px; object-fit: cover;">
+                    {% else %}
+                        <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center mx-auto mb-3"
+                             style="width: 150px; height: 150px; font-size: 48px;">
+                            {{ user.get_full_name|make_list|first }}
+                        </div>
+                    {% endif %}
+                    <h4>{{ user.get_full_name }}</h4>
+                    <p class="text-muted">{{ user.user_type.name }}</p>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h5 class="card-title">Contact Information</h5>
+                    <p><strong>Email:</strong> {{ user.email }}</p>
+                    <p><strong>Username:</strong> {{ user.username }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Task Statistics</h5>
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <h3>{{ total_tasks }}</h3>
+                            <p class="text-muted">Total Tasks</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h3>{{ pending_tasks }}</h3>
+                            <p class="text-muted">Pending Tasks</p>
+                        </div>
+                        <div class="col-md-4">
+                            <h3>{{ completed_tasks }}</h3>
+                            <p class="text-muted">Completed Tasks</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h5 class="card-title">Recent Activities</h5>
+                    <div class="list-group">
+                        {% for action in recent_actions %}
+                            <div class="list-group-item">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">{{ action.task.title }}</h6>
+                                    <small class="text-muted">{{ action.timestamp|timesince }} ago</small>
+                                </div>
+                                <p class="mb-1">{{ action.action_description }}</p>
+                            </div>
+                        {% empty %}
+                            <p class="text-muted">No recent activities</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

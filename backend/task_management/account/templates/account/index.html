@@ -1,0 +1,400 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+
+{% block title %}Electrical Task Management System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+ 
+
+    <!-- Filters Section -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-outline-primary active" data-filter="all">All Tasks</button>
+                <button type="button" class="btn btn-outline-warning" data-filter="PENDING">Pending</button>
+                <button type="button" class="btn btn-outline-info" data-filter="IN_PROGRESS">In Progress</button>
+                <button type="button" class="btn btn-outline-success" data-filter="COMPLETED">Completed</button>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="input-group">
+                <input type="text" class="form-control" placeholder="Search tasks..." id="taskSearch">
+                <button class="btn btn-outline-secondary" type="button">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tasks Table -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th style="width: 8%">SR No</th>
+                            <th style="width: 8%">Date</th>
+                            <th style="width: 12%">Location</th>
+                            <th style="width: 15%">Job Description</th>
+                            <th style="width: 15%">Action</th>
+                            <th style="width: 10%">Reported By</th>
+                            <th style="width: 10%">Job To Be Done By</th>
+                            <th style="width: 8%">Deadline</th>
+                            <th style="width: 15%">Materials Required</th>
+                            <th style="width: 8%">Status</th>
+
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for task in tasks %}
+                        <tr class="task-row" data-status="{{ task.status }}" onclick="window.location='{% url 'task_detail' task.id %}'" style="cursor: pointer;">
+                            <td class="text-nowrap">{{ task.sr_no }}</td>
+                            <td class="text-nowrap">{{ task.created_at|date:"M d, Y" }}</td>
+                            <td class="text-wrap">{{ task.location }}</td>
+                            <td>
+                                <div class="description-container">
+                                    <div class="description-short">
+                                        {{ task.job_description|truncatewords:15 }}
+                                        {% if task.job_description|wordcount > 15 %}
+                                            <button class="btn btn-link btn-sm show-more p-0" onclick="event.stopPropagation()">Show More</button>
+                                        {% endif %}
+                                    </div>
+                                    <div class="description-full d-none">
+                                        {{ task.job_description }}
+                                        <button class="btn btn-link btn-sm show-less p-0" onclick="event.stopPropagation()">Show Less</button>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="text-wrap">
+                                    {% if task.actions.exists %}
+                                        {{ task.actions.first.action_description|truncatewords:15 }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="text-wrap">{{ task.assigned_by|default:"Not Assigned" }}</td>
+                            <td class="text-wrap">{{ task.assigned_to|default:"Not Assigned" }}</td>
+                            <td class="text-nowrap">{{ task.deadline|date:"M d, Y" }}</td>
+                            <td>
+                                <div class="text-wrap" style="max-height: 80px; overflow-y: auto;">
+                                    {{ task.materials_required|default:"-" }}
+                                </div>
+                            </td>
+                            <td class="text-nowrap">
+                                <span class="badge {% if task.status == 'PENDING' %}bg-warning
+                                           {% elif task.status == 'IN_PROGRESS' %}bg-info
+                                           {% else %}bg-success{% endif %}">
+                                    {{ task.status }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="10" class="text-center">No tasks found</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+// Task filtering
+document.querySelectorAll('[data-filter]').forEach(button => {
+    button.addEventListener('click', function() {
+        const filter = this.dataset.filter;
+        
+        // Update active button
+        document.querySelectorAll('[data-filter]').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        this.classList.add('active');
+        
+        // Filter tasks
+        document.querySelectorAll('.task-row').forEach(row => {
+            if (filter === 'all' || row.dataset.status === filter) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+});
+
+// Task search
+document.getElementById('taskSearch').addEventListener('input', function(e) {
+    const searchTerm = e.target.value.toLowerCase();
+    document.querySelectorAll('.task-row').forEach(row => {
+        const srNo = row.cells[0].textContent.toLowerCase();
+        const description = row.cells[1].textContent.toLowerCase();
+        const location = row.cells[2].textContent.toLowerCase();
+        const assignedTo = row.cells[3].textContent.toLowerCase();
+        
+        if (srNo.includes(searchTerm) || 
+            description.includes(searchTerm) || 
+            location.includes(searchTerm) || 
+            assignedTo.includes(searchTerm)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+});
+
+// Description expand/collapse functionality
+document.querySelectorAll('.show-more').forEach(button => {
+    button.addEventListener('click', function(e) {
+        e.preventDefault();
+        const container = this.closest('.description-container');
+        container.querySelector('.description-short').classList.add('d-none');
+        container.querySelector('.description-full').classList.remove('d-none');
+    });
+});
+
+document.querySelectorAll('.show-less').forEach(button => {
+    button.addEventListener('click', function(e) {
+        e.preventDefault();
+        const container = this.closest('.description-container');
+        container.querySelector('.description-full').classList.add('d-none');
+        container.querySelector('.description-short').classList.remove('d-none');
+    });
+});
+
+// Prevent show more/less buttons from triggering row click
+document.querySelectorAll('.show-more, .show-less').forEach(button => {
+    button.addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
+});
+
+// WebSocket connection
+const wsScheme = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+const tasksSocket = new WebSocket(
+    `${wsScheme}//${window.location.host}/ws/tasks/`
+);
+
+tasksSocket.onopen = function(e) {
+    console.log('WebSocket connection established');
+};
+
+tasksSocket.onmessage = function(e) {
+    const data = JSON.parse(e.data);
+    console.log('Received data:', data);
+    if (data.type === 'task_update') {
+        addNewTask(data.task);
+    }
+};
+
+tasksSocket.onerror = function(e) {
+    console.error('WebSocket error:', e);
+};
+
+function addNewTask(task) {
+    const tbody = document.querySelector('table tbody');
+    const emptyRow = tbody.querySelector('tr td[colspan="10"]')?.parentElement;
+    if (emptyRow) {
+        emptyRow.remove();
+    }
+
+    const tr = document.createElement('tr');
+    tr.className = 'task-row';
+    tr.setAttribute('data-status', task.status);
+    tr.onclick = () => window.location = `/tasks/${task.id}/`;
+    tr.style.cursor = 'pointer';
+    
+    tr.innerHTML = `
+        <td class="text-nowrap">${task.sr_no}</td>
+        <td class="text-nowrap">${formatDate(task.created_at)}</td>
+        <td class="text-wrap">${task.location || ''}</td>
+        <td>
+            <div class="description-container">
+                <div class="description-short">
+                    ${truncateWords(task.job_description, 15)}
+                    ${task.job_description.split(' ').length > 15 ? 
+                        '<button class="btn btn-link btn-sm show-more p-0" onclick="event.stopPropagation()">Show More</button>' : 
+                        ''}
+                </div>
+                <div class="description-full d-none">
+                    ${task.job_description}
+                    <button class="btn btn-link btn-sm show-less p-0" onclick="event.stopPropagation()">Show Less</button>
+                </div>
+            </div>
+        </td>
+        <td><div class="text-wrap">-</div></td>
+        <td class="text-wrap">${task.assigned_by || 'Not Assigned'}</td>
+        <td class="text-wrap">${task.assigned_to || 'Not Assigned'}</td>
+        <td class="text-nowrap">${formatDate(task.deadline)}</td>
+        <td>
+            <div class="text-wrap" style="max-height: 80px; overflow-y: auto;">
+                ${task.materials_required || '-'}
+            </div>
+        </td>
+        <td class="text-nowrap">
+            <span class="badge ${getStatusBadgeClass(task.status)}">
+                ${task.status}
+            </span>
+        </td>
+    `;
+    
+    tbody.insertBefore(tr, tbody.firstChild);
+    
+    // Reattach event listeners for new show more/less buttons
+    attachShowMoreLessListeners(tr);
+}
+
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric' 
+    });
+}
+
+function truncateWords(str, numWords) {
+    const words = str.split(' ');
+    if (words.length > numWords) {
+        return words.slice(0, numWords).join(' ') + '...';
+    }
+    return str;
+}
+
+function getStatusBadgeClass(status) {
+    switch(status) {
+        case 'PENDING': return 'bg-warning';
+        case 'IN_PROGRESS': return 'bg-info';
+        case 'COMPLETED': return 'bg-success';
+        default: return 'bg-secondary';
+    }
+}
+
+function attachShowMoreLessListeners(element) {
+    element.querySelectorAll('.show-more').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const container = this.closest('.description-container');
+            container.querySelector('.description-short').classList.add('d-none');
+            container.querySelector('.description-full').classList.remove('d-none');
+        });
+    });
+
+    element.querySelectorAll('.show-less').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const container = this.closest('.description-container');
+            container.querySelector('.description-full').classList.add('d-none');
+            container.querySelector('.description-short').classList.remove('d-none');
+        });
+    });
+}
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .table td, .table th {
+        vertical-align: middle;
+        padding: 0.75rem;
+    }
+    
+    .text-wrap {
+        white-space: normal;
+        word-wrap: break-word;
+        min-width: 100px;
+    }
+    
+    .text-nowrap {
+        white-space: nowrap;
+    }
+    
+    .table td div {
+        line-height: 1.4;
+    }
+    
+    /* Custom scrollbar for overflow content */
+    div::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    div::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+    
+    div::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 3px;
+    }
+    
+    div::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+    
+    /* Make table header sticky */
+    .table thead th {
+        position: sticky;
+        top: 0;
+        background: white;
+        z-index: 1;
+        border-bottom: 2px solid #dee2e6;
+    }
+    
+    .table-responsive {
+        max-height: 70vh;
+    }
+    
+    .description-container {
+        position: relative;
+    }
+    
+    .description-short, .description-full {
+        padding: 5px;
+    }
+    
+    .description-full {
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .btn-link {
+        color: #007bff;
+        text-decoration: none;
+        font-size: 0.8rem;
+    }
+    
+    .btn-link:hover {
+        text-decoration: underline;
+    }
+    
+    .d-none {
+        display: none;
+    }
+    
+    .task-row:hover {
+        background-color: rgba(0,0,0,0.05);
+        transition: background-color 0.2s ease;
+    }
+    
+    /* Prevent text selection when clicking rows */
+    .task-row {
+        user-select: none;
+    }
+    
+    /* Make sure buttons remain clickable */
+    .btn-link {
+        position: relative;
+        z-index: 2;
+    }
+</style>
+{% endblock %}
+{% endblock %}

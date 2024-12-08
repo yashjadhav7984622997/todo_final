@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+
+{% block title %}
+    {% if task %}Edit Task{% else %}Create Task{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">{% if task %}Edit Task #{{ task.sr_no }}{% else %}Create New Task{% endif %}</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <!-- SR No -->
+                        <div class="mb-3">
+                            <label for="sr_no" class="form-label required">SR No</label>
+                            <input type="text" class="form-control" id="sr_no" name="sr_no" 
+                                   value="{{ task.sr_no|default:'' }}" required>
+                            <div class="form-text">Enter a unique serial number for this task</div>
+                        </div>
+
+                        <!-- Job Description -->
+                        <div class="mb-3">
+                            <label for="job_description" class="form-label required">Job Description</label>
+                            <textarea class="form-control" id="job_description" name="job_description" 
+                                    rows="4" required>{{ task.job_description|default:'' }}</textarea>
+                            <div class="form-text">Provide a detailed description of the task</div>
+                        </div>
+
+                        <!-- Location -->
+                        <div class="mb-3">
+                            <label for="location" class="form-label required">Location</label>
+                            <input type="text" class="form-control" id="location" name="location" 
+                                   value="{{ task.location|default:'' }}" required>
+                        </div>
+
+                        <!-- Assigned To -->
+                        <div class="mb-3">
+                            <label for="assigned_to" class="form-label required">Assign To</label>
+                            <select class="form-select" id="assigned_to" name="assigned_to" required>
+                                <option value="">Select person to assign</option>
+                                {% for employee in employees %}
+                                <option value="{{ employee.email }}" 
+                                        {% if task.assigned_to == employee.email %}selected{% endif %}>
+                                    {{ employee.email }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Materials Required -->
+                        <div class="mb-3">
+                            <label for="materials_required" class="form-label">Materials Required</label>
+                            {% if user.user_type.name|lower in 'admin,electrician'|split:',' %}
+                                <textarea class="form-control" id="materials_required" name="materials_required" 
+                                        rows="3">{{ task.materials_required|default:'' }}</textarea>
+                                <div class="form-text">List any materials needed for this task</div>
+                            {% else %}
+                                <div class="form-control" style="height: auto; min-height: calc(1.5em + 0.75rem + 2px); background-color: #e9ecef;">
+                                    {{ task.materials_required|default:'No materials specified' }}
+                                </div>
+                                <div class="form-text">Only admin and electrician can edit materials</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Deadline -->
+                        <div class="mb-3">
+                            <label for="deadline" class="form-label required">Deadline</label>
+                            <input type="datetime-local" class="form-control" id="deadline" name="deadline" 
+                                   value="{% if task.deadline %}{{ task.deadline|date:'Y-m-d\TH:i' }}{% endif %}" required>
+                        </div>
+
+                        <!-- Status (only for editing) -->
+                        {% if task %}
+                        <div class="mb-3">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="PENDING" {% if task.status == 'PENDING' %}selected{% endif %}>Pending</option>
+                                <option value="IN_PROGRESS" {% if task.status == 'IN_PROGRESS' %}selected{% endif %}>In Progress</option>
+                                <option value="COMPLETED" {% if task.status == 'COMPLETED' %}selected{% endif %}>Completed</option>
+                            </select>
+                        </div>
+                        {% endif %}
+
+                        <!-- Form Actions -->
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                {% if task %}Update Task{% else %}Create Task{% endif %}
+                            </button>
+                            <a href="{% url 'task_list' %}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .required::after {
+        content: " *";
+        color: red;
+    }
+    
+    .form-text {
+        font-size: 0.875em;
+        color: #6c757d;
+    }
+</style>
+{% endblock %}  
